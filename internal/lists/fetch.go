@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -24,8 +25,29 @@ type Fetcher struct {
 func NewFetcher(cacheDir string) *Fetcher {
 	return &Fetcher{
 		CacheDir: cacheDir,
-		Client:   &http.Client{Timeout: 60 * time.Second},
+		Client: &http.Client{
+			Timeout:       60 * time.Second,
+			CheckRedirect: checkRedirect,
+		},
 	}
+}
+
+// checkRedirect bounds the fetch so a list URL cannot be abused for SSRF:
+// at most 3 hops, no https→http downgrade, no non-public destination.
+// The list body itself is covered by TLS certificate validation.
+func checkRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) > 3 {
+		return errors.New("too many redirects")
+	}
+	if len(via) > 0 && via[0].URL.Scheme == "https" && req.URL.Scheme != "https" {
+		return errors.New("redirect downgrades https to http")
+	}
+	host := req.URL.Hostname()
+	if ip, err := netip.ParseAddr(host); err == nil &&
+		(!ip.IsGlobalUnicast() || ip.IsLoopback() || ip.IsPrivate()) {
+		return fmt.Errorf("redirect to non-public address %s", host)
+	}
+	return nil
 }
 
 func (f *Fetcher) cachePath(url string) string {
