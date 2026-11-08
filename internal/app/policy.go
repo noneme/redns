@@ -21,7 +21,14 @@ type ListInfo struct {
 	Rules  int    `json:"rules"`
 	Stale  bool   `json:"stale,omitempty"`
 	Error  string `json:"error,omitempty"`
+	Warn   string `json:"warn,omitempty"`
 }
+
+// maxRemoteRegexpRules bounds regexp rules from a single remote list. Go's
+// regexp engine is linear per rule, so the cost is rule count, not
+// backtracking — a 64 MB list could otherwise ship hundreds of thousands of
+// regexps and tax every query. Local lists are trusted and uncapped.
+const maxRemoteRegexpRules = 1000
 
 type loaded struct {
 	rules []lists.Rule
@@ -52,6 +59,24 @@ func load(ctx context.Context, cfg *config.Config, f *lists.Fetcher, kind string
 		body = []byte(strings.Join(s.Domains, "\n"))
 	}
 	_ = lists.Parse(bytes.NewReader(body), func(r lists.Rule) { l.rules = append(l.rules, r) })
+	if s.URL != "" {
+		var kept []lists.Rule
+		nRegexp, dropped := 0, 0
+		for _, r := range l.rules {
+			if r.Kind == lists.Regexp {
+				nRegexp++
+				if nRegexp > maxRemoteRegexpRules {
+					dropped++
+					continue
+				}
+			}
+			kept = append(kept, r)
+		}
+		if dropped > 0 {
+			l.info.Warn = fmt.Sprintf("regexp rules: dropped %d exceeding limit %d", dropped, maxRemoteRegexpRules)
+		}
+		l.rules = kept
+	}
 	l.info.Rules = len(l.rules)
 	return l
 }
