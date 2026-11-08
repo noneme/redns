@@ -40,7 +40,7 @@ mkdir -p "$WORK/redns/deploy"
   -ldflags "-s -w -X main.version=$VERSION" -o "$WORK/redns/redns-linux-$ARCH" ./cmd/redns)
 cp -R "$ROOT/lists" "$WORK/redns/"
 cp "$ROOT/config.example.yaml" "$WORK/redns/"
-cp "$ROOT/deploy/install.sh" "$ROOT/deploy/redns.service" "$ROOT/deploy/sysctl.conf" "$WORK/redns/deploy/"
+cp "$ROOT/deploy/install.sh" "$ROOT/deploy/redns.service" "$ROOT/deploy/sysctl.conf" "$ROOT/deploy/update-lists.sh" "$WORK/redns/deploy/"
 COPYFILE_DISABLE=1 tar --no-xattrs -C "$WORK" -czf "$WORK/redns.tgz" redns 2>/dev/null || tar -C "$WORK" -czf "$WORK/redns.tgz" redns
 
 echo "==> Загружаю"

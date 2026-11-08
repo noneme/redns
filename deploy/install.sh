@@ -223,6 +223,7 @@ if [[ $SSH_KEY_ONLY -eq 1 ]]; then
   fi
 fi
 
+install -m 0755 "$SRC/deploy/update-lists.sh" /usr/local/bin/update-redns-lists
 install -m 0644 "$SRC/deploy/redns.service" /etc/systemd/system/redns.service
 systemctl daemon-reload
 systemctl enable redns >/dev/null 2>&1
