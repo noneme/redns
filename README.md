@@ -98,7 +98,7 @@ flowchart LR
 <summary>Установка прямо на сервере, без компьютера</summary>
 
 ```bash
-git clone https://github.com/renothingg/redns && cd redns
+git clone https://github.com/noneme/redns && cd redns
 sudo ./deploy/install.sh --domain dns.example.com
 ```
 
