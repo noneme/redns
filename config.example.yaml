@@ -73,7 +73,10 @@ proxy:
     - lists/media.txt
     - lists/services.txt
     - lists/custom.txt
-    - https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Categories/geoblock.lst
+    # Удалённые списки зафиксированы по commit-SHA: содержимое не меняется
+    # под ногами. Обновить: sudo update-redns-lists — покажет новый коммит,
+    # спросит подтверждение и сделает reload. Или подставь новый SHA руками.
+    - https://raw.githubusercontent.com/itdoginfo/allow-domains/eb64def4353f8e1b9cc483858021979a3481c76e/Categories/geoblock.lst
     # - lists/streaming.txt
     # - file: lists/us-only.txt
     #   via: us
@@ -104,8 +107,10 @@ proxy:
 block:
   enabled: true
   lists:
-    - https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt
-    - https://raw.githubusercontent.com/ImMALWARE/dns.malw.link/master/lists/garbage.txt
+    # Скомпилированный фильтр AdGuard DNS. Живёт в ветке gh-pages (там готовые
+    # файлы; в master — только исходники rules.txt/exclusions.txt).
+    - https://raw.githubusercontent.com/AdguardTeam/AdGuardSDNSFilter/5de8d88563db4655402254610eb9ebc6d9572a8f/Filters/filter.txt
+    - https://raw.githubusercontent.com/ImMALWARE/dns.malw.link/3e9bd017acb52b50650e07a33912559e738537ba/lists/garbage.txt
   allow: []
 
 hosts: []
