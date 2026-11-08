@@ -188,6 +188,13 @@ func cmdCheck(args []string) error {
 		if i.Error != "" {
 			note = i.Error
 		}
+		if i.Warn != "" {
+			if note == "" {
+				note = i.Warn
+			} else {
+				note += "; " + i.Warn
+			}
+		}
 		fmt.Fprintf(tw, "%s\t%d\t%s\t%s\n", i.Kind, i.Rules, i.Source, note)
 	}
 	tw.Flush()
