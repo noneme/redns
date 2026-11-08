@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/netip"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -378,6 +379,21 @@ func (c *Config) Validate() error {
 			}
 		}
 	}
+	for _, g := range []struct {
+		kind string
+		srcs []ListSource
+	}{
+		{"proxy.lists", c.Proxy.Lists},
+		{"proxy.exclude", c.Proxy.Exclude},
+		{"block.lists", c.Block.Lists},
+		{"block.allow", c.Block.Allow},
+	} {
+		for _, s := range g.srcs {
+			if err := checkListURL(s.URL); err != nil {
+				errs = append(errs, fmt.Errorf("%s: %w", g.kind, err))
+			}
+		}
+	}
 	switch c.Proxy.IPv6Egress {
 	case "", "auto", "on", "off":
 	default:
@@ -413,6 +429,34 @@ func (c *Config) ProxyIPv6Egress() bool {
 		return false
 	default:
 		return c.PublicIPv6 != ""
+	}
+}
+
+// checkListURL allows https for any host and http only for local sources
+// (loopback or private IPs, localhost). This keeps a plaintext list download
+// from ever reaching the internet, where it could be read or replaced.
+func checkListURL(u string) error {
+	if u == "" {
+		return nil
+	}
+	p, err := url.Parse(u)
+	if err != nil {
+		return fmt.Errorf("bad URL %q: %w", u, err)
+	}
+	switch p.Scheme {
+	case "https":
+		return nil
+	case "http":
+		host := p.Hostname()
+		if host == "localhost" {
+			return nil
+		}
+		if ip, err := netip.ParseAddr(host); err == nil && (ip.IsLoopback() || ip.IsPrivate()) {
+			return nil
+		}
+		return fmt.Errorf("%s: http is allowed only for local addresses, use https", u)
+	default:
+		return fmt.Errorf("%s: unsupported URL scheme %q (use https)", u, p.Scheme)
 	}
 }
 
