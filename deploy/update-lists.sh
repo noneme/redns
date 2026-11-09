@@ -14,18 +14,21 @@
 # предложит зафиксировать за текущим HEAD.
 #
 # Использование:
-#   sudo update-redns-lists [-c /etc/redns/config.yaml] [--dry-run]
+#   sudo update-redns-lists [-c /etc/redns/config.yaml] [--dry-run] [--yes]
+# --yes пропускает вопрос подтверждения (для админки).
 
 set -euo pipefail
 
 CONFIG="/etc/redns/config.yaml"
 DRY_RUN=0
+YES=0
 
 usage() {
   cat <<EOF
-Использование: $0 [-c конфиг] [--dry-run]
+Использование: $0 [-c конфиг] [--dry-run] [--yes]
   -c PATH       файл конфига (по умолчанию /etc/redns/config.yaml)
   --dry-run     только показать, что изменится, ничего не менять
+  --yes         не спрашивать подтверждение (для админки)
 EOF
 }
 
@@ -33,6 +36,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     -c) CONFIG="${2:---c требует путь}"; shift 2 ;;
     --dry-run|-n) DRY_RUN=1; shift ;;
+    --yes|-y) YES=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; exit 2 ;;
   esac
@@ -163,8 +167,14 @@ if [[ $DRY_RUN -eq 1 ]]; then
   exit 0
 fi
 
-read -r -p "Обновить $CONFIG и выполнить systemctl reload redns? [y/N] " ans
-[[ $ans =~ ^[Yy]([Ee][Ss][Hh])?$ ]] || { echo "Отменено."; exit 1; }
+if [[ $YES -eq 0 ]]; then
+  if [[ ! -t 0 ]]; then
+    echo "Нужно подтверждение: запусти в терминале или передай --yes" >&2
+    exit 2
+  fi
+  read -r -p "Обновить $CONFIG и выполнить systemctl reload redns? [y/N] " ans
+  [[ $ans =~ ^[Yy]([Ee][Ss][Hh])?$ ]] || { echo "Отменено."; exit 1; }
+fi
 
 backup="$CONFIG.bak-$(date +%Y%m%d-%H%M%S)"
 cp -p "$CONFIG" "$backup"

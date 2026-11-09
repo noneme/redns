@@ -224,8 +224,13 @@ if [[ $SSH_KEY_ONLY -eq 1 ]]; then
 fi
 
 install -m 0755 "$SRC/deploy/update-lists.sh" /usr/local/bin/update-redns-lists
+install -d -m 0755 /usr/local/libexec
+install -m 0755 "$SRC/deploy/redns-update-helper" /usr/local/libexec/redns-update-helper
+install -m 0644 "$SRC/deploy/redns-update.socket" /etc/systemd/system/redns-update.socket
+install -m 0644 "$SRC/deploy/redns-update@.service" /etc/systemd/system/redns-update@.service
 install -m 0644 "$SRC/deploy/redns.service" /etc/systemd/system/redns.service
 systemctl daemon-reload
+systemctl enable --now redns-update.socket >/dev/null 2>&1 || warn "сокет обновления списков не поднялся"
 systemctl enable redns >/dev/null 2>&1
 systemctl restart redns
 sleep 2
