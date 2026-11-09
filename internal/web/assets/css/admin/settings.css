@@ -30,6 +30,38 @@
   font-size: 13px;
 }
 
+.kv dd.with-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.lists-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dialog.wide {
+  width: min(640px, calc(100vw - 32px));
+}
+
+.dialog pre.log {
+  margin-top: 12px;
+  max-height: 50vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.45;
+  background: var(--raised);
+  padding: 12px;
+  border-radius: 8px;
+}
+
 code.cmd {
   font-family: var(--mono);
   font-size: 12.5px;

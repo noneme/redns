@@ -9,7 +9,8 @@
     timer = null;
   var hist = { q: [], b: [], c: [], o: [] },
     prev = null,
-    lastClients = [];
+    lastClients = [],
+    listsBusy = false;
 
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -316,7 +317,23 @@
       ["Правил блокировки", num(info.block_rules)],
       ["Записей в кэше", num(info.cache_entries)],
     ].forEach(function (r) {
-      add(kv, el("dt", null, r[0]), el("dd", "mono", r[1]));
+      var dd = el("dd", "mono", r[1]);
+      if (r[0] === "Правил прокси") {
+        var check = el("button", "btn sm ghost", "Проверить обновления");
+        var apply = el("button", "btn sm", "Обновить");
+        check.type = "button";
+        apply.type = "button";
+        check.disabled = listsBusy;
+        apply.disabled = listsBusy;
+        check.addEventListener("click", checkLists);
+        apply.addEventListener("click", applyLists);
+        dd = add(
+          el("dd", "with-actions"),
+          el("span", "mono", r[1]),
+          add(el("span", "lists-actions"), check, apply),
+        );
+      }
+      add(kv, el("dt", null, r[0]), dd);
     });
     renderBans(o.bans || []);
   }
@@ -1227,6 +1244,60 @@
   $("ov-alert-go").addEventListener("click", function () {
     setFilter("strangers");
   });
+
+  function showListsDialog(title, text) {
+    var box = $("lists-body");
+    box.textContent = "";
+    var close = el("button", "btn", "Закрыть");
+    close.type = "button";
+    close.addEventListener("click", function () {
+      $("lists-dialog").close();
+    });
+    add(
+      box,
+      el("h2", null, title),
+      el("pre", "log", text || ""),
+      add(el("div", "dialog-actions"), close),
+    );
+    if (!$("lists-dialog").open) $("lists-dialog").showModal();
+  }
+  function checkLists() {
+    if (listsBusy) return;
+    listsBusy = true;
+    showListsDialog("Обновления списков", "Проверяю…");
+    api("POST", "lists/check")
+      .then(function (res) {
+        showListsDialog("Обновления списков", res.output || "Готово.");
+      })
+      .catch(function (err) {
+        showListsDialog("Обновления списков", err.message);
+      })
+      .finally(function () {
+        listsBusy = false;
+      });
+  }
+  function applyLists() {
+    if (listsBusy) return;
+    if (
+      !confirm(
+        "Обновить списки и перечитать конфиг? Ссылки сменятся на новые коммиты, сервис получит reload.",
+      )
+    )
+      return;
+    listsBusy = true;
+    showListsDialog("Обновление списков", "Обновляю…");
+    api("POST", "lists/apply")
+      .then(function (res) {
+        showListsDialog("Обновление списков", res.output || "Готово.");
+        refresh();
+      })
+      .catch(function (err) {
+        showListsDialog("Обновление списков", err.message);
+      })
+      .finally(function () {
+        listsBusy = false;
+      });
+  }
 
   $("strict").addEventListener("click", function () {
     var next = $("strict").getAttribute("aria-checked") !== "true";
