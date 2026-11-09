@@ -214,6 +214,8 @@ func (a *admin) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		"bans/remove":          {http.MethodPost, a.unban},
 		"kick":                 {http.MethodPost, a.kick},
 		"settings":             {http.MethodPost, a.settings},
+		"lists/check":          {http.MethodPost, a.listsCheck},
+		"lists/apply":          {http.MethodPost, a.listsApply},
 		"log":                  {http.MethodGet, a.log},
 		"conns":                {http.MethodGet, a.conns},
 		"audit":                {http.MethodGet, a.auditLog},
@@ -865,6 +867,33 @@ func (a *admin) kick(rw http.ResponseWriter, r *http.Request) {
 	}
 	a.record(r, false, "Клиент отключён", p.String())
 	writeJSON(rw, map[string]any{"ok": true, "closed": n})
+}
+
+func (a *admin) listsCheck(rw http.ResponseWriter, r *http.Request) {
+	a.listsUpdate(rw, r, "check")
+}
+
+func (a *admin) listsApply(rw http.ResponseWriter, r *http.Request) {
+	a.listsUpdate(rw, r, "apply")
+}
+
+func (a *admin) listsUpdate(rw http.ResponseWriter, r *http.Request, mode string) {
+	out, code, err := runListUpdate(listUpdateSocket, mode)
+	action := "Проверены обновления списков"
+	if mode == "apply" {
+		action = "Списки обновлены"
+	}
+	if err != nil {
+		a.record(r, true, action+" не выполнено", err.Error())
+		http.Error(rw, err.Error(), http.StatusServiceUnavailable)
+		return
+	}
+	detail := "без изменений"
+	if code != 0 {
+		detail = "код " + strconv.Itoa(code)
+	}
+	a.record(r, code != 0, action, detail)
+	writeJSON(rw, map[string]any{"ok": code == 0, "output": out})
 }
 
 func (a *admin) settings(rw http.ResponseWriter, r *http.Request) {
